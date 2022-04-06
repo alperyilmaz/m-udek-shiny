@@ -74,7 +74,6 @@ ui <- fluidPage(
              gt_output('student_table')
     ),
     
-    
     tabPanel('Upload',
              sidebarLayout(
                sidebarPanel(
@@ -635,13 +634,19 @@ server <- function(input, output, session) {
     init_table <- load_data() %>%
       filter(term == input$select_term_course) %>% 
       create_table_initial_plus_by_course()
+    # DEBUG
+    #saveRDS(init_table, "init_table.rds")
     init_table
   })
   
   output$course_table <- render_gt(
     expr = {
-      create_course_table(course_initial_table_sql()) %>% 
-        mutate(below_50 = rowSums(. < 50, na.rm = TRUE)) %>% 
+      course_table <- create_course_table(course_initial_table_sql()) %>% 
+        mutate(below_50 = rowSums(. < 50, na.rm = TRUE))
+      # DEBUG
+      #saveRDS(course_table, "course_table.rds")
+
+      course_table %>%
         gt(rowname_col = "course") %>%
         fmt_missing(columns = everything(), missing_text = "") %>% 
         tab_header(
@@ -677,8 +682,10 @@ server <- function(input, output, session) {
           style = list(cell_fill(color = "#F02241"), #cell_fill(color = "red"),
                        cell_text(color = "white")),
           locations = cells_stub( 
-            rows = below_50 >= 1)) %>% 
-        cols_hide(below_50)
+        # TODO these below_50 column names should not be quoted! check examples at 
+        # https://search.r-project.org/CRAN/refmans/gt/html/tab_style.html
+            rows = "below_50" >= 1)) %>% 
+        cols_hide("below_50")
     },
     height = px(550)
     
