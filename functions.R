@@ -1,7 +1,5 @@
 parse_all_sheets <- function(file) {
-  #file <- "Dr_Yeliz Elalmış.xlsx"
-  #sheet <- "BYM4081-GR1"
-  #sheet <- "BYM4451-GR1"
+
   file %>% 
     excel_sheets() %>% 
     set_names() %>% 
@@ -18,19 +16,27 @@ parse_sheet <- function(file, sheet){
   methods <- df %>% 
     head(2) %>%
     janitor::remove_empty("cols") %>% 
-    rename(`Ölçme Yöntemi`= any_of(c("ölcme yöntemi", "ölçme yöntemi", "Ölçme\r\nYöntemi", "Ölçme \r\nYöntemi"))) %>%
-    gather(method, value, -`Ölçme Yöntemi`) %>% 
-    spread(`Ölçme Yöntemi`, value)
-  
+    rename_with(~ "Ölçme Yöntemi", 
+                matches("[ÖöOo][Ll][ÇçCc][Mm][Ee][ \r\n]*[Yy][ÖöOo][Nn][Tt][Ee][Mm][Iıİi] *")) %>% 
+    #gather(method, value, -`Ölçme Yöntemi`)
+    pivot_longer(-`Ölçme Yöntemi`,
+                 names_to = "method", 
+                 values_to = "value")  %>% 
+    #spread(`Ölçme Yöntemi`, value)
+    pivot_wider(names_from = `Ölçme Yöntemi`, 
+                values_from = value ) %>% 
+    rename_with(~ "PC", matches("[Pp][ \\.]*[ÇçCc][ \\.]*"))
+
   df %>% 
     filter(row_number() > 2) %>% 
     select(-starts_with("..")) %>% 
-    rename(`Ölçme Yöntemi` = any_of(c("ölcme yöntemi", "ölçme yöntemi", "Ölçme\r\nYöntemi", "Ölçme \r\nYöntemi"))) %>%
+    rename_with(~ "Ölçme Yöntemi", 
+                matches("[ÖöOo][Ll][ÇçCc][Mm][Ee][ \r\n]*[Yy][ÖöOo][Nn][Tt][Ee][Mm][Iıİi] *")) %>% 
     rename(student_no = `Ölçme Yöntemi`) %>% 
-    gather(method, score, -student_no) %>% 
+    pivot_longer(-student_no, names_to = "method", values_to = "score") %>% 
+    mutate(score = str_trim(score)) %>% 
     left_join(methods, by = c("method")) %>% 
-    mutate(method = gsub("[[:punct:]]{3}[[:digit:]]", "" , method)) %>%  
-    rename(PC = any_of(c("PÇ", "PC", "P.C", "P.C", "P.Ç.", "P.Ç"))) %>% 
+    mutate(method = gsub("[[:punct:]]{3}[[:digit:]]", "" , method)) %>% 
     # TODO we need general rule here for 12.1 3a 3.b 10-1
     #mutate(PC = round(as.numeric(PC), digits = 4)) %>%   # for rounding errors
     rename(Puan = starts_with("Puan")) %>%
@@ -39,6 +45,7 @@ parse_sheet <- function(file, sheet){
            PC = as.character(PC)) %>% 
     mutate(score = ifelse(is.na(score) & !str_detect(method, regex("Bütünleme", ignore_case = TRUE)), 0, score)) %>% 
     mutate(score = ifelse(score == -1, NA, score)) %>% 
+    # exclude Erasmus or Farabi students
     filter(is.na(student_no) | !str_detect(student_no, "^F|^E"))
 }
 
