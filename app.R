@@ -50,7 +50,7 @@ ui <- fluidPage(
   navbarPage(
     id = "nav",
     title = 'MUDEK APP',
-    
+    # TODO we need separate menu for ÇAP students
     navbarMenu('Department Summary',
                tabPanel('Department Summary (ALL)', gt_output('department_table')),
                tabPanel('Department Summary (TR)', gt_output('department_table_tr')),
@@ -89,7 +89,11 @@ ui <- fluidPage(
                                "2019-2020 GÜZ",
                                "2019-2020 BAHAR",
                                "2020-2021 GÜZ",
-                               "2020-2021 BAHAR")
+                               "2020-2021 BAHAR",
+                               "2021-2022 GÜZ",
+                               "2021-2022 BAHAR",
+                               "2022-2023 GÜZ",
+                               "2022-2023 BAHAR")
                  ),
                  tags$hr(),
                  fileInput(
@@ -462,7 +466,9 @@ server <- function(input, output, session) {
     dept_table
   })
   
-  
+  # TODO in department tables we should have ALL PC
+  # TODO order of columns for 12b 8a is WRONG
+  # TODO the column header should be frozen
   output$department_table <- render_gt(
     expr = {
       dept_table_sql() %>% 
@@ -506,7 +512,9 @@ server <- function(input, output, session) {
   output$department_table_en <- render_gt(
     expr = {
       dept_table_sql() %>% 
-        filter(str_detect(student_no, "C")) %>% 
+        # TODO for Eng departments what are the letters?
+        # TODO what about ÇAP students which start with Ç
+        filter(str_detect(student_no, "[0-9]+[ABCDEF][0-9]+")) %>% 
         gt(rowname_col = "student_no") %>%
         fmt_missing(columns = everything(), missing_text = "") %>% 
         tab_header(
@@ -547,7 +555,7 @@ server <- function(input, output, session) {
   output$department_table_tr <- render_gt(
     expr = {
       dept_table_sql() %>% 
-        filter(str_detect(student_no, "C", negate = TRUE)) %>% 
+        filter(str_detect(student_no, "[0-9]+[ABCDEF][0-9]+", negate=TRUE)) %>%
         gt(rowname_col = "student_no") %>%
         fmt_missing(columns = everything(), missing_text = "") %>% 
         tab_header(

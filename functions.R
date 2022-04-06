@@ -39,6 +39,11 @@ parse_sheet <- function(file, sheet){
     mutate(method = gsub("[[:punct:]]{3}[[:digit:]]", "" , method)) %>% 
     # TODO we need general rule here for 12.1 3a 3.b 10-1
     #mutate(PC = round(as.numeric(PC), digits = 4)) %>%   # for rounding errors
+    mutate(PC = as.character(PC)) %>%
+    mutate(PC = if_else(str_detect(PC,"\\."),
+                        str_extract(PC,"^[0-9]+[ \\._][0-9]"), 
+                        PC)) %>% 
+    mutate(PC = str_replace(PC, "_","\\.")) %>%
     rename(Puan = starts_with("Puan")) %>%
     mutate(score = as.numeric(score),
            Puan = as.numeric(Puan),
@@ -51,6 +56,8 @@ parse_sheet <- function(file, sheet){
 
 
 clean_course <- function(course_column){
+  #print(paste0("Course name is:",course_column))
+  
   course_column %>% 
     str_replace_all("[[:punct:]]", "") %>% 
     toupper() %>% 
@@ -59,8 +66,9 @@ clean_course <- function(course_column){
 }
 
 standardize_course_names <- function(parsed_dataframe){
+  #saveRDS(parsed_dataframe,"test.rds")
   parsed_dataframe %>%
-    mutate(course = clean_course(course))
+    dplyr::mutate(course = clean_course(course))
 }
 
 safe_parse_all_sheets <- safely(.f = parse_all_sheets)
@@ -93,7 +101,7 @@ create_table_initial <- function(dataframe){
 create_department_table <- function(dataframe_initial){
   dataframe_initial  %>% 
     distinct(student_no, PC, pass_fail) %>% 
-    mutate(PC = as.numeric(PC)) %>% 
+    #mutate(PC = as.numeric(PC)) %>% 
     spread(PC, pass_fail)
 }
 
@@ -113,7 +121,7 @@ create_course_table <- function(dataframe_initial_course){
     group_by(course, PC) %>%
     mutate(pass_fail_perc = round(sum(pass_fail, na.rm = TRUE)/n_distinct(student_no) * 100, digits = 1)) %>%
     ungroup() %>% 
-    mutate(PC = as.numeric(PC)) %>%
+    #mutate(PC = as.numeric(PC)) %>%
     distinct(course, PC, pass_fail_perc) %>% 
     arrange(desc(course)) %>% 
     pivot_wider(names_from = PC, values_from = pass_fail_perc, names_sort = TRUE)
@@ -123,7 +131,7 @@ create_student_table <- function(dataframe_initial_course, student_number){
   dataframe_initial_course %>%  
     distinct(course, student_no, PC, pass_fail) %>% 
     dplyr::filter(student_no %in% student_number) %>% 
-    mutate(PC = as.numeric(PC)) %>%
+    #mutate(PC = as.numeric(PC)) %>%
     arrange(desc(course)) %>% 
     select(-student_no) %>% 
     pivot_wider(names_from = PC, values_from = pass_fail, names_sort = TRUE)
