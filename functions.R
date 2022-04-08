@@ -39,6 +39,10 @@ parse_sheet <- function(file, sheet){
     pivot_longer(-student_no, names_to = "method", values_to = "score") %>% 
     mutate(score = str_trim(score)) %>% 
     left_join(methods, by = c("method")) %>% 
+    # let's deal with multiple PC's in a single cell. WARNING should this be allowed in the first place?
+    separate_rows(PC,sep = ",") %>% 
+    mutate(PC=str_trim(PC)) %>%
+    # multiple PC end
     mutate(method = gsub("[[:punct:]]{3}[[:digit:]]", "" , method)) %>% 
     # TODO we need general rule here for 12.1 3a 3.b 10-1
     #mutate(PC = round(as.numeric(PC), digits = 4)) %>%   # for rounding errors
