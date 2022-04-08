@@ -12,7 +12,7 @@ parse_all_sheets <- function(file) {
 
 parse_sheet <- function(file, sheet){
   df <- read_excel(file, sheet)  
-  
+
   methods <- df %>% 
     head(2) %>%
     janitor::remove_empty("cols") %>% 
@@ -32,7 +32,10 @@ parse_sheet <- function(file, sheet){
     select(-starts_with("..")) %>% 
     rename_with(~ "Ölçme Yöntemi", 
                 matches("[ÖöOo][Ll][ÇçCc][Mm][Ee][ \r\n]*[Yy][ÖöOo][Nn][Tt][Ee][Mm][Iıİi] *")) %>% 
-    rename(student_no = `Ölçme Yöntemi`) %>% 
+    rename(student_no = `Ölçme Yöntemi`) %>%
+    # ARGH!! some Excel cells have scientific notation on!!!
+    mutate(student_no = if_else(str_detect(student_no,"^[0-9]\\.[0-9]*E[0-9]"),as.character(as.numeric(student_no)), student_no)) %>%
+    mutate(student_no = as.character(student_no)) %>% 
     pivot_longer(-student_no, names_to = "method", values_to = "score") %>% 
     mutate(score = str_trim(score)) %>% 
     left_join(methods, by = c("method")) %>% 
