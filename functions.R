@@ -147,3 +147,32 @@ create_student_table <- function(dataframe_initial_course, student_number){
 get_time <- function() {
   format(Sys.time(), "%Y%m%d-%H%M%OS")
 }
+
+dept_table_gt_options <- function(data){
+data %>% 
+  tab_spanner(
+          label = "PÇ",
+          columns = everything()
+        ) %>% 
+        cols_align(
+          align = "center"
+        ) %>% 
+        tab_source_note(
+          source_note = "1: passed, 0: failed"
+        ) %>% 
+        tab_options(
+          table.border.top.style = "none",
+          table.border.bottom.color = "black",
+          table.border.bottom.width = px(2),
+          table.font.size = px(14),
+          heading.border.bottom.color = "black",
+          heading.border.bottom.width = px(2),
+          column_labels.border.bottom.color = "black",
+          column_labels.border.bottom.width= px(2),
+          stub.border.color = "black",
+          stub.border.width = px(2),
+          table_body.border.bottom.color = "black",
+          table_body.border.bottom.width = px(2)
+        ) %>%
+        opt_row_striping()
+}

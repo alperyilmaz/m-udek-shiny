@@ -54,7 +54,8 @@ ui <- fluidPage(
     navbarMenu('Department Summary',
                tabPanel('Department Summary (ALL)', gt_output('department_table')),
                tabPanel('Department Summary (TR)', gt_output('department_table_tr')),
-               tabPanel('Department Summary (EN)', gt_output('department_table_en'))
+               tabPanel('Department Summary (EN)', gt_output('department_table_en')),
+               tabPanel('Department Summary (ÇAP)', gt_output('department_table_cap'))
                
     ),
     
@@ -477,32 +478,7 @@ server <- function(input, output, session) {
           title = md("**Department Report**")
         ) %>%
         tab_stubhead(label = "Student Number") %>% 
-        tab_spanner(
-          label = "PÇ",
-          columns = everything()
-        ) %>% 
-        cols_align(
-          align = "center"
-        ) %>% 
-        tab_source_note(
-          source_note = "1: passed, 0: failed"
-        ) %>% 
-        tab_options(
-          table.border.top.style = "none",
-          table.border.bottom.color = "black",
-          table.border.bottom.width = px(2),
-          table.font.size = px(14),
-          heading.border.bottom.color = "black",
-          heading.border.bottom.width = px(2),
-          column_labels.border.bottom.color = "black",
-          column_labels.border.bottom.width= px(2),
-          stub.border.color = "black",
-          stub.border.width = px(2),
-          table_body.border.bottom.color = "black",
-          table_body.border.bottom.width = px(2)
-        ) %>%
-        opt_row_striping()
-      
+        dept_table_gt_options()      
     },
     height = px(550)
   )
@@ -520,32 +496,7 @@ server <- function(input, output, session) {
           title = md("**Department Report (EN)**")
         ) %>%
         tab_stubhead(label = "Student Number") %>% 
-        tab_spanner(
-          label = "PÇ",
-          columns = everything()
-        ) %>% 
-        cols_align(
-          align = "center"
-        ) %>% 
-        tab_source_note(
-          source_note = "1: passed, 0: failed"
-        ) %>% 
-        tab_options(
-          table.border.top.style = "none",
-          table.border.bottom.color = "black",
-          table.border.bottom.width = px(2),
-          table.font.size = px(14),
-          heading.border.bottom.color = "black",
-          heading.border.bottom.width = px(2),
-          column_labels.border.bottom.color = "black",
-          column_labels.border.bottom.width= px(2),
-          stub.border.color = "black",
-          stub.border.width = px(2),
-          table_body.border.bottom.color = "black",
-          table_body.border.bottom.width = px(2)
-        ) %>%
-        opt_row_striping()
-      
+        dept_table_gt_options() 
     },
     height = px(550)
   )
@@ -554,39 +505,29 @@ server <- function(input, output, session) {
   output$department_table_tr <- render_gt(
     expr = {
       dept_table_sql() %>% 
-        filter(str_detect(student_no, "[0-9]+[ABCDEF][0-9]+", negate=TRUE)) %>%
+        filter(str_detect(student_no, "[ABCÇDEF]", negate=TRUE)) %>%
         gt(rowname_col = "student_no") %>%
         fmt_missing(columns = everything(), missing_text = "") %>% 
         tab_header(
           title = md("**Department Report (TR)**")
         ) %>%
         tab_stubhead(label = "Student Number") %>% 
-        tab_spanner(
-          label = "PÇ",
-          columns = everything()
-        ) %>% 
-        cols_align(
-          align = "center"
-        ) %>% 
-        tab_source_note(
-          source_note = "1: passed, 0: failed"
-        ) %>% 
-        tab_options(
-          table.border.top.style = "none",
-          table.border.bottom.color = "black",
-          table.border.bottom.width = px(2),
-          table.font.size = px(14),
-          heading.border.bottom.color = "black",
-          heading.border.bottom.width = px(2),
-          column_labels.border.bottom.color = "black",
-          column_labels.border.bottom.width= px(2),
-          stub.border.color = "black",
-          stub.border.width = px(2),
-          table_body.border.bottom.color = "black",
-          table_body.border.bottom.width = px(2)
+        dept_table_gt_options()       
+    },
+    height = px(550)
+  )
+  
+  output$department_table_cap <- render_gt(
+    expr = {
+      dept_table_sql() %>% 
+        filter(str_detect(student_no, "^Ç")) %>%
+        gt(rowname_col = "student_no") %>%
+        fmt_missing(columns = everything(), missing_text = "") %>% 
+        tab_header(
+          title = md("**Department Report (ÇAP)**")
         ) %>%
-        opt_row_striping()
-      
+        tab_stubhead(label = "Student Number") %>% 
+        dept_table_gt_options()       
     },
     height = px(550)
   )
@@ -726,31 +667,7 @@ server <- function(input, output, session) {
         subtitle = md(paste("Student number:", input$select_student))
       ) %>%
       tab_stubhead(label = "Courses") %>% 
-      tab_spanner(
-        label = "PÇ",
-        columns = everything()
-      ) %>% 
-      cols_align(
-        align = "center"
-      ) %>% 
-      tab_source_note(
-        source_note = "1: passed, 0: failed"
-      ) %>% 
-      tab_options(
-        table.border.top.style = "none",
-        table.border.bottom.color = "black",
-        table.border.bottom.width = px(2),
-        # table.font.size = px(12),
-        heading.border.bottom.color = "black",
-        heading.border.bottom.width = px(2),
-        column_labels.border.bottom.color = "black",
-        column_labels.border.bottom.width= px(2),
-        stub.border.color = "black",
-        stub.border.width = px(2),
-        table_body.border.bottom.color = "black",
-        table_body.border.bottom.width = px(2)
-      ) %>%
-      opt_row_striping()
+      dept_table_gt_options()
   })
   
   output$export_student_report <- downloadHandler(
@@ -787,31 +704,7 @@ server <- function(input, output, session) {
               subtitle = md(paste("Student number:", student))
             ) %>%
             tab_stubhead(label = "Courses") %>% 
-            tab_spanner(
-              label = "PÇ",
-              columns = everything()
-            ) %>% 
-            cols_align(
-              align = "center"
-            ) %>% 
-            tab_source_note(
-              source_note = "1: passed, 0: failed"
-            ) %>% 
-            tab_options(
-              table.border.top.style = "none",
-              table.border.bottom.color = "black",
-              table.border.bottom.width = px(2),
-              # table.font.size = px(12),
-              heading.border.bottom.color = "black",
-              heading.border.bottom.width = px(2),
-              column_labels.border.bottom.color = "black",
-              column_labels.border.bottom.width= px(2),
-              stub.border.color = "black",
-              stub.border.width = px(2),
-              table_body.border.bottom.color = "black",
-              table_body.border.bottom.width = px(2)
-            ) %>%
-            opt_row_striping(),
+            dept_table_gt_options(),
           name
         )
         files <- c(files, name)
