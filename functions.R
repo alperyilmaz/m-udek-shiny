@@ -36,6 +36,9 @@ parse_sheet <- function(file, sheet){
     # ARGH!! some Excel cells have scientific notation on!!!
     mutate(student_no = if_else(str_detect(student_no,"^[0-9]\\.[0-9]*E[0-9]"),as.character(as.numeric(student_no)), student_no)) %>%
     mutate(student_no = as.character(student_no)) %>% 
+    # TODO some student numbers have tab character (ex: 1705A054, 1705A055, 1705A703, etc.)
+    # TODO ideally we should extract numbers with 056 05A, otherwise we'll get foreign student numbers
+    mutate(student_no = str_extract(student_no,"Ç*[0-9]+[ABCDEF][0-9]+") %>%
     pivot_longer(-student_no, names_to = "method", values_to = "score") %>% 
     mutate(score = str_trim(score)) %>% 
     left_join(methods, by = c("method")) %>% 
@@ -58,7 +61,9 @@ parse_sheet <- function(file, sheet){
     mutate(score = ifelse(is.na(score) & !str_detect(method, regex("Bütünleme", ignore_case = TRUE)), 0, score)) %>% 
     mutate(score = ifelse(score == -1, NA, score)) %>% 
     # exclude Erasmus or Farabi students
-    filter(is.na(student_no) | !str_detect(student_no, "^F|^E"))
+    filter(is.na(student_no) | !str_detect(student_no, "^F|^E")) %>%
+    # TODO we should warn user about this, rows with very short student numbers are removed
+    filter(str_length(student_no) >= 8)  
 }
 
 
