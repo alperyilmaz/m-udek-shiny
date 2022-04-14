@@ -504,7 +504,10 @@ server <- function(input, output, session) {
   
   output$department_table_tr <- render_gt(
     expr = {
-      dept_table_sql() %>% 
+      dept_table_sql() -> test_table
+      # debug
+      #saveRDS(test_table,"test_sql_table.rds")
+      test_table %>% 
         filter(str_detect(student_no, "[ABCÇDEF]", negate=TRUE)) %>%
         gt(rowname_col = "student_no") %>%
         fmt_missing(columns = everything(), missing_text = "") %>% 
@@ -675,7 +678,8 @@ server <- function(input, output, session) {
       paste0(paste(userDept(), input$select_student, "Student Report", sep="-") , ".pdf")
     },
     content = function(file) {
-      gtsave(student_report(), file)
+      # zoom idea taken from https://github.com/rstudio/gt/issues/721#issuecomment-797479922
+      gtsave(student_report(), file, zoom=1)
       # vwidth = 700,
       # vheight = 300
     }
@@ -705,7 +709,8 @@ server <- function(input, output, session) {
             ) %>%
             tab_stubhead(label = "Courses") %>% 
             dept_table_gt_options(),
-          name
+          # zoom idea taken from https://github.com/rstudio/gt/issues/721#issuecomment-797479922
+          name, zoom=1
         )
         files <- c(files, name)
       }
