@@ -38,7 +38,7 @@ parse_sheet <- function(file, sheet){
     mutate(student_no = as.character(student_no)) %>% 
     # TODO some student numbers have tab character (ex: 1705A054, 1705A055, 1705A703, etc.)
     # TODO ideally we should extract numbers with 056 05A, otherwise we'll get foreign student numbers
-    mutate(student_no = str_extract(student_no,"Ç*[0-9]+[ABCDEF][0-9]+") %>%
+    mutate(student_no = str_extract(student_no,"Ç*[0-9]+[ABCDEF][0-9]+")) %>%
     pivot_longer(-student_no, names_to = "method", values_to = "score") %>% 
     mutate(score = str_trim(score)) %>% 
     left_join(methods, by = c("method")) %>% 
