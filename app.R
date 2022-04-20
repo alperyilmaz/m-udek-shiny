@@ -54,8 +54,12 @@ ui <- fluidPage(
     navbarMenu('Department Summary',
                tabPanel('Department Summary (ALL)', gt_output('department_table')),
                tabPanel('Department Summary (TR)', gt_output('department_table_tr')),
-               tabPanel('Department Summary (EN)', gt_output('department_table_en')),
-               tabPanel('Department Summary (ÇAP)', gt_output('department_table_cap'))
+               tabPanel('Department Summary (EN)',
+                        downloadButton("export_department_table_en", "Export Department Summary (EN)"),
+                        tags$hr(), 
+                        gt_output('department_table_en')),
+               tabPanel('Department Summary (ÇAP)', gt_output('department_table_cap')),
+               tabPanel('Department PC Matrix', gt_output('department_table_pc_matriks'))
                
     ),
     
@@ -402,7 +406,7 @@ server <- function(input, output, session) {
     input$deleteCourse
     con <- dbConnect(RSQLite::SQLite(), userDB())
     table_names <- dbListTables(con)
-    table_names <- table_names[!table_names %in% "submission_details.tsv"]
+    table_names <- table_names[!table_names %in% c("submission_details.tsv","pc_def","pc_matriks")]
     dbDisconnect(con)
     if(identical(table_names, character(0))){"No files have been submitted."}
     else{table_names}
@@ -411,7 +415,7 @@ server <- function(input, output, session) {
   load_data <- function(){
     con <- dbConnect(RSQLite::SQLite(), userDB())
     table_names <- dbListTables(con)
-    table_names <- table_names[!table_names %in% "submission_details.tsv"]
+    table_names <- table_names[!table_names %in% c("submission_details.tsv","pc_def","pc_matriks")]
     tables <- lapply(table_names, dbReadTable, conn = con)
     # tables <- map(table_names, tbl, conn = con) # throws an error!
     merged <- bind_rows(tables)
@@ -465,7 +469,9 @@ server <- function(input, output, session) {
       create_department_table()
     dept_table
   })
-  
+ 
+  output$department_table_pc_matriks <- renderText("test")  
+
   # TODO in department tables we should have ALL PC
   # TODO order of columns for 12b 8a is WRONG
   # TODO the column header should be frozen
@@ -486,21 +492,30 @@ server <- function(input, output, session) {
   
   output$department_table_en <- render_gt(
     expr = {
-      dept_table_sql() %>% 
-        # TODO for Eng departments what are the letters?
-        # TODO what about ÇAP students which start with Ç
-        filter(str_detect(student_no, "[0-9]+[ABCDEF][0-9]+")) %>% 
-        gt(rowname_col = "student_no") %>%
-        fmt_missing(columns = everything(), missing_text = "") %>% 
-        tab_header(
-          title = md("**Department Report (EN)**")
-        ) %>%
-        tab_stubhead(label = "Student Number") %>% 
-        dept_table_gt_options() 
+      department_table_en_gt <- dept_table_sql() %>% 
+        filter_dept_table_sql("[0-9]+[ABCDEF][0-9]+","**Department Report (EN)**") %>%
+        dept_table_gt_options()
+      #debug
+      #saveRDS(department_table_en_gt, "department_table_en_gt.rds")
+      department_table_en_gt 
     },
     height = px(550)
   )
   
+output$export_department_table_en <- downloadHandler(
+    filename = function() {
+      paste0(paste(userDept(), "Department Summary EN", sep="-") , ".html")
+    },
+    content = function(file) {
+      gt_dept_table_en <- dept_table_sql() %>%
+        filter_dept_table_sql("[0-9]+[ABCDEF][0-9]+","**Department Report (EN)**") %>%
+        dept_table_gt_options()
+
+      # zoom idea taken from https://github.com/rstudio/gt/issues/721#issuecomment-797479922
+      #zoom=1 for pdf
+      gtsave(gt_dept_table_en, file)  
+    }
+  )
   
   output$department_table_tr <- render_gt(
     expr = {

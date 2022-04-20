@@ -117,6 +117,18 @@ create_department_table <- function(dataframe_initial){
     spread(PC, pass_fail)
 }
 
+filter_dept_table_sql <- function(df, regex, title) {
+  df %>% 
+    # TODO for Eng departments what are the letters?
+    # TODO what about ÇAP students which start with Ç
+    filter(str_detect(student_no, regex)) %>%
+    gt(rowname_col = "student_no") %>%
+    fmt_missing(columns = everything(), missing_text = "") %>%
+    tab_header(
+      title = md(title)
+      ) %>%
+    tab_stubhead(label = "Student Number")
+}
 
 create_table_initial_plus_by_course <- function(dataframe){
   dataframe %>% 
