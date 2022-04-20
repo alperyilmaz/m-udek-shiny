@@ -124,9 +124,10 @@ filter_dept_table_sql <- function(df, regex, title) {
     filter(str_detect(student_no, regex)) %>%
     gt(rowname_col = "student_no") %>%
     fmt_missing(columns = everything(), missing_text = "") %>%
-    tab_header(
-      title = md(title)
-      ) %>%
+    # tab header becomes sticky in PDF so, we omit that 2022.04.20
+    #tab_header(
+    #  title = md(title)
+    #  ) %>%
     tab_stubhead(label = "Student Number")
 }
 
@@ -167,10 +168,10 @@ get_time <- function() {
 
 dept_table_gt_options <- function(data){
 data %>% 
-  tab_spanner(
-          label = "PÇ",
-          columns = everything()
-        ) %>% 
+  #tab_spanner(
+  #        label = "PÇ",
+  #        columns = everything()
+  #      ) %>% 
         cols_align(
           align = "center"
         ) %>% 
@@ -191,5 +192,33 @@ data %>%
           table_body.border.bottom.color = "black",
           table_body.border.bottom.width = px(2)
         ) %>%
-        opt_row_striping()
+        opt_row_striping() %>%
+        tab_style(
+          # TODO borders of sticky row is not sticky at all
+          # please check https://stackoverflow.com/questions/50361698/border-style-do-not-work-with-sticky-position-element
+          # for some css based solution
+          style = css(position = "sticky", top = 0),
+          locations = list(cells_column_labels(), cells_stubhead())
+        ) %>%
+        # TODO this does not work, ask somewhere else, is it possible to make borders sticky?
+        tab_style(
+          # TODO cell_borders(sides = c("top", "bottom"),color = "#BBBBBB",weight = px(1.5),style = "solid")
+          style = css(position = "sticky", top = 0),
+          locations = list(cells_column_labels(), cells_stubhead())          
+        ) %>% 
+        # TODO testing if 12px fits to PDF 
+        tab_options(table.font.size = px(12)) %>%
+        # taken from https://www.linkedin.com/pulse/use-font-awesome-gt-tabular-data-yinghui-liu
+        text_transform(locations=cells_body(everything()),
+                       fn = function(x) {
+                         # fa-regular or fa-thin didn't work probably not free
+                         dplyr::case_when(x=="1" ~ "<svg width='16px' height='16px' viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'><title>ionicons-v5-e</title><polyline points='416 128 192 384 96 288' style='fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px'/></svg>", 
+                                          x=="0" ~ "<svg version='1.1' id='Capa_1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' width='16px' height='16px' 
+	 viewBox='0 0 50 50' style='enable-background:new 0 0 50 50;' xml:space='preserve'>
+<circle style='fill:#D75A4A;' cx='25' cy='25' r='25'/>
+<polyline style='fill:none;stroke:#FFFFFF;stroke-width:2;stroke-linecap:round;stroke-miterlimit:10;' points='16,34 25,25 34,16'/>
+<polyline style='fill:none;stroke:#FFFFFF;stroke-width:2;stroke-linecap:round;stroke-miterlimit:10;' points='16,16 25,25 34,34'/></svg> ",
+                                          TRUE ~ x)
+                       }
+        )  
 }

@@ -52,18 +52,38 @@ ui <- fluidPage(
     title = 'MUDEK APP',
     # TODO we need separate menu for ÇAP students
     navbarMenu('Department Summary',
-               tabPanel('Department Summary (ALL)', gt_output('department_table')),
-               tabPanel('Department Summary (TR)', gt_output('department_table_tr')),
+               tabPanel('Department Summary (ALL)',
+                         downloadButton("export_department_table_all", "Export Department Summary (ALL)"),
+                         tags$hr(),
+                         HTML("<center><h3>Department Summary (ALL)</h3></center>"), 
+                         gt_output('department_table')),
+               tabPanel('Department Summary (TR)', 
+                         downloadButton("export_department_table_tr", "Export Department Summary (TR)"),
+                         tags$hr(),
+                         HTML("<center><h3>Department Summary (TR)</h3></center>"),
+                         gt_output('department_table_tr')),
                tabPanel('Department Summary (EN)',
                         downloadButton("export_department_table_en", "Export Department Summary (EN)"),
-                        tags$hr(), 
+                        tags$hr(),
+                        HTML("<center><h3>Department Summary (EN)</h3></center>"), 
                         gt_output('department_table_en')),
-               tabPanel('Department Summary (ÇAP)', gt_output('department_table_cap')),
-               tabPanel('Department PC Matrix', gt_output('department_table_pc_matriks'))
-               
-    ),
-    
-    tabPanel('Course Summary',
+               tabPanel('Department Summary (ÇAP)', 
+                        downloadButton("export_department_table_cap", "Export Department Summary (ÇAP)"),
+                        tags$hr(),
+                        HTML("<center><h3>Department Summary (ÇAP)</h3></center>"),
+                        gt_output('department_table_cap')),
+               tabPanel('Department PC Matrix',
+                        # TODO this button prevents the app from showing gt output. why?
+                        #downloadButton("department_table_pc_matriks", "Department PC Matrix"),
+                        tags$hr(),
+                        HTML("<center><h3>Department PC Matrix</h3></center>"),
+                        gt_output('department_table_pc_matriks'),
+                        tags$hr(),
+                        #downloadButton("department_table_pc_def", "Department PC Definitions"),
+                        HTML("<center><h3>Department PC Definitions</h3></center>"),
+                        gt_output('department_table_pc_def'))
+   ),  
+   tabPanel('Course Summary',
              uiOutput("select_term_course_input"),
              shinycssloaders::withSpinner(gt_output('course_table'))),
     
@@ -419,6 +439,14 @@ server <- function(input, output, session) {
     tables <- lapply(table_names, dbReadTable, conn = con)
     # tables <- map(table_names, tbl, conn = con) # throws an error!
     merged <- bind_rows(tables)
+
+    pc_def <- dbReadTable(conn=con, "pc_def") %>% as_tibble() %>% select(pc_rank, pc_no) 
+    merged <- 
+      merged %>% 
+      as_tibble() %>% 
+      right_join(pc_def, by=c("PC"="pc_no")) %>% 
+      mutate(PC=fct_reorder(PC, pc_rank)) %>% 
+      select(-pc_rank)
     dbDisconnect(con)
     merged
   }
@@ -480,9 +508,9 @@ server <- function(input, output, session) {
       dept_table_sql() %>% 
         gt(rowname_col = "student_no") %>%
         fmt_missing(columns = everything(), missing_text = "") %>% 
-        tab_header(
-          title = md("**Department Report**")
-        ) %>%
+        #tab_header(
+        #  title = md("**Department Report**")
+        #) %>%
         tab_stubhead(label = "Student Number") %>% 
         dept_table_gt_options()      
     },
@@ -504,6 +532,7 @@ server <- function(input, output, session) {
   
 output$export_department_table_en <- downloadHandler(
     filename = function() {
+      # INFO pdf output is a huge table with single header, if printed from html you can have pagination
       paste0(paste(userDept(), "Department Summary EN", sep="-") , ".html")
     },
     content = function(file) {
