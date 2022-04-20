@@ -1,0 +1,30 @@
+library(tidyverse)
+
+current_term <- "2020-2021 BAHAR"
+
+readxl::read_excel("PC_tablo_rev.xlsx") %>% 
+  pivot_longer(-c(Kodu,Ders,`Ders Tipi`), names_to = "PC", values_to = "PCgroup") %>% 
+  filter(!is.na(PCgroup)) %>% 
+  separate_rows(PCgroup,sep=",") %>% 
+  mutate(PCgroup=str_trim(PCgroup),
+         PCgroup=str_to_lower(PCgroup)) %>%
+  unite("PC2", c(PC,PCgroup), sep = "") %>% 
+  mutate(term=current_term, .before = Kodu) %>%
+  rename(PC=PC2,DersTipi=`Ders Tipi`) %>%
+  write_tsv("biyomuh-pc-list.tsv")
+
+readxl::read_xlsx("PC_tablo_rev.xlsx", sheet = 2) %>% 
+  mutate(pc_no = str_replace(`Program Çıktıları`,"\\s","\t")) %>% 
+  separate(pc_no, sep = "\t", into=c("pc_no","pc_def")) %>% 
+  mutate(pc_no = str_trim(pc_no), pc_no = str_remove(pc_no, "\\.")) %>% 
+  mutate(pc_def = str_trim(pc_def)) %>% 
+  mutate(rank=row_number(),.before = pc_no) %>%
+  select(rank, pc_no, pc_def) %>% 
+  write_tsv("pc_def.tsv")
+
+# importing data to sqlite, use biyomuh-sabit.db
+# CREATE TABLE IF NOT EXISTS "pc_def"("pc_rank" INT, "pc_no" TEXT, "pc_def" TEXT);
+# .mode tabs
+# .import "pc_def.tsv" pc_def --skip 1
+#
+# .import "biyomuh-pc-list.tsv" pc_matriks --skip 1

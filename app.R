@@ -1,4 +1,4 @@
-# mudek-test
+	# mudek-test
 library(gt)
 library(DBI)
 library(shiny)
@@ -15,10 +15,19 @@ library(shinycssloaders)
 
 # admin database!
 database_biyomuh <- "biyomuh.db"
+database_biyomuh_sabit <- "biyomuh-sabit.db"
+
 database_gidamuh <- "gidamuh.db"
+database_gidamuh_sabit <- "gidamuh-sabit.db"
+
 database_kimyamuh <- "kimyamuh.db"
-database_matmuh <- "matmuh.db"
+database_kimyamuh_sabit <- "kimyamuh-sabit.db"
+
+database_matmuh_sabit <- "matmuh.db"
+database_matmuh <- "matmuh-sabit.db"
+
 database_metalurjimuh <- "metalurjimuh.db"
+database_metalurjimuh_sabit <- "metalurjimuh-sabit.db"
 
 # sqlitePath = "/home/zeynep/sqlite/mudek/mudek.db"
 # sqlitePath = "mudek-test.db"
@@ -257,6 +266,17 @@ server <- function(input, output, session) {
            user5 = database_metalurjimuh
     )
   })
+
+  userDBsabit <- reactive({
+    switch(res_auth$user,
+           admin = database_biyomuh_sabit,
+           user1 = database_biyomuh_sabit,
+           user2 = database_gidamuh_sabit,
+           user3 = database_kimyamuh_sabit,
+           user4 = database_matmuh_sabit,
+           user5 = database_metalurjimuh_sabit
+    )
+  })
   
   
   output$user_dept <- renderUI({
@@ -440,7 +460,8 @@ server <- function(input, output, session) {
     # tables <- map(table_names, tbl, conn = con) # throws an error!
     merged <- bind_rows(tables)
 
-    pc_def <- dbReadTable(conn=con, "pc_def") %>% as_tibble() %>% select(pc_rank, pc_no) 
+    con2 <- dbConnect(RSQLite::SQLite(), userDBsabit())
+    pc_def <- dbReadTable(conn=con2, "pc_def") %>% as_tibble() %>% select(pc_rank, pc_no) 
     merged <- 
       merged %>% 
       as_tibble() %>% 
@@ -448,6 +469,7 @@ server <- function(input, output, session) {
       mutate(PC=fct_reorder(PC, pc_rank)) %>% 
       select(-pc_rank)
     dbDisconnect(con)
+    dbDisconnect(con2)
     merged
   }
   
