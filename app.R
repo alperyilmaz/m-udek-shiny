@@ -62,23 +62,25 @@ ui <- fluidPage(
     # TODO we need separate menu for ÇAP students
     navbarMenu('Department Summary',
                tabPanel('Department Summary (ALL)',
-                         downloadButton("export_department_table_all", "Export Department Summary (ALL)"),
-                         tags$hr(),
+                         #downloadButton("export_department_table_all", "Export Department Summary (ALL)"),
+                         #tags$hr(),
                          HTML("<center><h3>Department Summary (ALL)</h3></center>"), 
                          gt_output('department_table')),
                tabPanel('Department Summary (TR)', 
                          downloadButton("export_department_table_tr", "Export Department Summary (TR)"),
+                         HTML("<p>Please print the downloaded html file in landscape layout in Chrome/Firefox</p>"),
                          tags$hr(),
                          HTML("<center><h3>Department Summary (TR)</h3></center>"),
                          gt_output('department_table_tr')),
                tabPanel('Department Summary (EN)',
                         downloadButton("export_department_table_en", "Export Department Summary (EN)"),
+                        HTML("<p>Please print the downloaded html file in landscape layout in Chrome/Firefox</p>"),
                         tags$hr(),
                         HTML("<center><h3>Department Summary (EN)</h3></center>"), 
                         gt_output('department_table_en')),
                tabPanel('Department Summary (ÇAP)', 
-                        downloadButton("export_department_table_cap", "Export Department Summary (ÇAP)"),
-                        tags$hr(),
+                        #downloadButton("export_department_table_cap", "Export Department Summary (ÇAP)"),
+                        #tags$hr(),
                         HTML("<center><h3>Department Summary (ÇAP)</h3></center>"),
                         gt_output('department_table_cap')),
                tabPanel('Department PC Matrix',
@@ -574,28 +576,39 @@ output$export_department_table_en <- downloadHandler(
       # debug
       #saveRDS(test_table,"test_sql_table.rds")
       test_table %>% 
-        filter(str_detect(student_no, "[ABCÇDEF]", negate=TRUE)) %>%
-        gt(rowname_col = "student_no") %>%
-        fmt_missing(columns = everything(), missing_text = "") %>% 
-        tab_header(
-          title = md("**Department Report (TR)**")
-        ) %>%
-        tab_stubhead(label = "Student Number") %>% 
+        filter_dept_table_sql("[ABCÇDEF]","**Department Report (TR)**", negate=TRUE) %>%
+        #filter(str_detect(student_no, "[ABCÇDEF]", negate=TRUE)) %>%
+        #gt(rowname_col = "student_no") %>%
+        #fmt_missing(columns = everything(), missing_text = "") %>% 
+        #tab_header(
+        #  title = md("**Department Report (TR)**")
+        #) %>%
+        #tab_stubhead(label = "Student Number") %>% 
         dept_table_gt_options()       
     },
     height = px(550)
+  )
+
+output$export_department_table_tr <- downloadHandler(
+    filename = function() {
+      # INFO pdf output is a huge table with single header, if printed from html you can have pagination
+      paste0(paste(userDept(), "Department Summary TR", sep="-") , ".html")
+    },
+    content = function(file) {
+      gt_dept_table_tr <- dept_table_sql() %>%
+        filter_dept_table_sql("[ABCÇDEF]","**Department Report (TR)**", negate=TRUE) %>%
+        dept_table_gt_options()
+      # zoom idea taken from https://github.com/rstudio/gt/issues/721#issuecomment-797479922
+      #zoom=1 for pdf
+      gtsave(gt_dept_table_tr, file)
+    }
   )
   
   output$department_table_cap <- render_gt(
     expr = {
       dept_table_sql() %>% 
-        filter(str_detect(student_no, "^Ç")) %>%
-        gt(rowname_col = "student_no") %>%
-        fmt_missing(columns = everything(), missing_text = "") %>% 
-        tab_header(
-          title = md("**Department Report (ÇAP)**")
-        ) %>%
-        tab_stubhead(label = "Student Number") %>% 
+        filter_dept_table_sql("^Ç","**Department Report (ÇAP)**") %>%
+        #filter(str_detect(student_no, "^Ç")) %>%
         dept_table_gt_options()       
     },
     height = px(550)

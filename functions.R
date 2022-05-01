@@ -116,12 +116,13 @@ create_department_table <- function(dataframe_initial){
     #mutate(PC = as.numeric(PC)) %>% 
     spread(PC, pass_fail)
 }
-
-filter_dept_table_sql <- function(df, regex, title) {
+# negate is used by department table TR, the negated regex is used.
+# default negate is FALSE unless otherwise is requested
+filter_dept_table_sql <- function(df, regex, title, negate=FALSE) {
   df %>% 
     # TODO for Eng departments what are the letters?
     # TODO what about ÇAP students which start with Ç
-    filter(str_detect(student_no, regex)) %>%
+    filter(str_detect(student_no, regex, negate=negate)) %>%
     gt(rowname_col = "student_no") %>%
     fmt_missing(columns = everything(), missing_text = "") %>%
     # tab header becomes sticky in PDF so, we omit that 2022.04.20
