@@ -167,6 +167,12 @@ get_time <- function() {
   format(Sys.time(), "%Y%m%d-%H%M%OS")
 }
 
+get_available_terms <- function() {
+# reverse order is better, the latest term will be selected as default
+c("2021-2022 BAHAR", "2021-2022 GÜZ",  "2020-2021 BAHAR", "2020-2021 GÜZ", "2019-2020 BAHAR",  "2019-2020 GÜZ","2018-2019 BAHAR", "2018-2019 GÜZ")
+
+}
+
 dept_table_gt_options <- function(data){
 data %>% 
   #tab_spanner(
@@ -223,3 +229,4 @@ data %>%
                        }
         )  
 }
+

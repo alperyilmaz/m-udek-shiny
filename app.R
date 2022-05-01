@@ -86,8 +86,11 @@ ui <- fluidPage(
                tabPanel('Department PC Matrix',
                         # TODO this button prevents the app from showing gt output. why?
                         #downloadButton("department_table_pc_matriks", "Department PC Matrix"),
-                        tags$hr(),
                         HTML("<center><h3>Department PC Matrix</h3></center>"),
+                        #selectInput("select_term_matrix", "Select Term", choices = get_available_terms()),
+                        uiOutput("select_term_matrix_input"),
+                        shinycssloaders::withSpinner(gt_output('matrix_table')),
+                        tags$hr(),
                         gt_output('department_table_pc_matriks'),
                         tags$hr(),
                         #downloadButton("department_table_pc_def", "Department PC Definitions"),
@@ -119,16 +122,7 @@ ui <- fluidPage(
                  selectInput(
                    "select_term",
                    "Term",
-                   choices = c("2018-2019 GÜZ",
-                               "2018-2019 BAHAR",
-                               "2019-2020 GÜZ",
-                               "2019-2020 BAHAR",
-                               "2020-2021 GÜZ",
-                               "2020-2021 BAHAR",
-                               "2021-2022 GÜZ",
-                               "2021-2022 BAHAR",
-                               "2022-2023 GÜZ",
-                               "2022-2023 BAHAR")
+                   choices = get_available_terms()
                  ),
                  tags$hr(),
                  fileInput(
@@ -474,7 +468,22 @@ server <- function(input, output, session) {
     dbDisconnect(con2)
     merged
   }
-  
+
+  load_matrix_data <- function(){
+    con <- dbConnect(RSQLite::SQLite(), userDBsabit())
+    matriks_table <- dbReadTable(conn=con, "pc_matriks")
+    pc_def <- dbReadTable(conn=con, "pc_def") %>% as_tibble() %>% select(pc_rank, pc_no)
+
+    merged <- matriks_table %>% 
+      as_tibble() %>% 
+      right_join(pc_def, by=c("PC"="pc_no")) %>% 
+      mutate(PC=fct_reorder(PC, pc_rank)) %>% 
+      select(-pc_rank)
+
+    dbDisconnect(con)
+
+    merged  
+}
   # load_submission_details <- function(){
   #   con <- dbConnect(RSQLite::SQLite(), userDB())
   #   details_table <- dbReadTable(con, "submission_details.tsv")
@@ -641,6 +650,13 @@ output$export_department_table_tr <- downloadHandler(
                 c(sort(as.character(get_terms()$term))))
     
   })
+
+  output$select_term_matrix_input <- renderUI({
+    selectInput("select_term_matrix",
+                "Select Term:",
+                get_available_terms())
+
+  })
   
   observeEvent(c(input$submitFiles, input$deleteTerm, input$deleteCourse), {
     updateSelectInput(session,
@@ -662,6 +678,13 @@ output$export_department_table_tr <- downloadHandler(
     init_table
   })
   
+  matrix_initial_table_sql <- reactive({
+    init_table <- load_matrix_data() %>%
+      filter(term == input$select_term_matrix)
+
+    init_table
+  })
+
   output$course_table <- render_gt(
     expr = {
       course_table <- create_course_table(course_initial_table_sql()) %>% 
@@ -713,7 +736,15 @@ output$export_department_table_tr <- downloadHandler(
     height = px(550)
     
   )
-  
+# TODO needs lots of modifications
+output$matrix_table <- render_gt(
+    expr = {
+      matrix_initial_table_sql() %>%
+      gt()
+          },
+    height = px(550)
+
+  )
   
   student_initial_table_sql <- reactive({
     input$submitFiles
