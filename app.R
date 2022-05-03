@@ -91,8 +91,8 @@ ui <- fluidPage(
                         uiOutput("select_term_matrix_input"),
                         shinycssloaders::withSpinner(gt_output('matrix_table')),
                         tags$hr(),
-                        gt_output('department_table_pc_matriks'),
-                        tags$hr(),
+                        #gt_output('department_table_pc_matriks'),
+                        #tags$hr(),
                         #downloadButton("department_table_pc_def", "Department PC Definitions"),
                         HTML("<center><h3>Department PC Definitions</h3></center>"),
                         gt_output('department_table_pc_def'))
@@ -740,7 +740,17 @@ output$export_department_table_tr <- downloadHandler(
 output$matrix_table <- render_gt(
     expr = {
       matrix_initial_table_sql() %>%
-      gt()
+        select(-term, -DersTipi) %>% 
+        #select(`Ders Kodu`=Kodu, `Ders Adı`=Ders, everything()) %>% 
+        unite(Kodu, Ders, col="Course", sep=" ") %>%
+        mutate(PC_var=1) %>% 
+        pivot_wider(names_from = PC, values_from = PC_var, names_sort = TRUE) %>% 
+        # arrange course names according to 4th (year) and 1st letter and finally ders kodu
+        arrange(str_sub(Course,4,4), str_sub(Course,1,1), Course) %>%
+        gt(rowname_col = "Course") %>% 
+        tab_stubhead(label = "Course") %>%
+        fmt_missing(columns = everything(), missing_text = "") %>% 
+        dept_table_gt_options()
           },
     height = px(550)
 
