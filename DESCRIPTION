@@ -1,0 +1,12 @@
+Imports:
+  shiny,
+  gt,
+  DBI,
+  readxl,
+  tidyverse,
+  webshot,
+  shinyjs,
+  shinyBS,
+  RSQLite,
+  shinymanager,
+  shinycssloaders  
