@@ -9,4 +9,5 @@ Imports:
   shinyBS,
   RSQLite,
   shinymanager,
-  shinycssloaders  
+  shinycssloaders,
+  janitor  

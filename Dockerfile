@@ -30,8 +30,8 @@ WORKDIR /home/app
 
 COPY *.R *.db /home/app/
 
-RUN chown app:app -R /home/app
-USER app
+#RUN chown app:app -R /home/app
+#USER app
 
 EXPOSE 3838
 
