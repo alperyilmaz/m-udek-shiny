@@ -1,5 +1,6 @@
 library(tidyverse)
 
+## BIYOMUH
 current_term <- "2020-2021 BAHAR"
 
 readxl::read_excel("PC_tablo_rev.xlsx") %>% 
@@ -28,3 +29,38 @@ readxl::read_xlsx("PC_tablo_rev.xlsx", sheet = 2) %>%
 # .import "pc_def.tsv" pc_def --skip 1
 #
 # .import "biyomuh-pc-list.tsv" pc_matriks --skip 1
+
+
+### KIMYAMUH
+
+kmm_temel  <- readxl::read_excel("KimyaMuhendisligi-PROGRAM CIKTILARI MATRİSİ.xlsx",1, skip = 2) %>% 
+  filter(!is.na(...2)) %>% 
+  pivot_longer(-(1:2), names_to = "PC", values_to = "VAR") %>% 
+  mutate(PC=round(as.numeric(PC),1)) %>% 
+  filter(!is.na(VAR)) %>% 
+  select(-VAR) %>% 
+  mutate(term="2020-2021 BAHAR", DersTipi="Temel") %>% 
+  select(term,Kodu=...1, Ders=...2, DersTipi, PC) %>%
+  filter(!is.na(Kodu))
+  
+kmm_secmeli <- readxl::read_excel("KimyaMuhendisligi-PROGRAM CIKTILARI MATRİSİ.xlsx",2, skip=1) %>%
+  filter(!is.na(...2)) %>% 
+  pivot_longer(-(1:2), names_to = "PC", values_to = "VAR") %>% 
+  mutate(PC=round(as.numeric(PC),1)) %>% 
+  filter(!is.na(VAR)) %>% 
+  select(-VAR) %>% 
+  mutate(term="2020-2021 BAHAR", DersTipi="Seçmeli") %>% 
+  select(term,Kodu=...1, Ders=...2, DersTipi, PC)
+    
+bind_rows(kmm_temel, kmm_secmeli) %>% write_tsv("kimyamuh-pc-list.tsv")
+
+read_tsv("kimyamuh-pc-list.tsv") %>% 
+  count(PC) %>% 
+  mutate(pc_rank=row_number(), pc_def="TBD") %>% 
+  select(pc_rank, pc_no=PC,pc_def) %>% 
+  write_tsv("kimyamuh_pc_def.tsv")
+
+# sqlite3 kimyamuh-sabit.db
+# sqlite> .mode tabs
+# sqlite> .import "kimyamuh_pc_def.tsv" pc_def --skip 1
+# sqlite> .import "kimyamuh-pc-list.tsv" pc_matriks --skip 1
