@@ -100,18 +100,32 @@ ui <- fluidPage(
    tabPanel('Course Summary',
              uiOutput("select_term_course_input"),
              shinycssloaders::withSpinner(gt_output('course_table'))),
-    
     tabPanel('Student Summary', 
-             sidebarPanel(
-               uiOutput("student_select_input"),
-               tags$hr(),
-               downloadButton("export_student_report", "Export Student Report"),
-               tags$hr(),
-               downloadButton("export_student_reports_all", "Export All Student Reports"),
-               width = 3
-             ),
-             gt_output('student_table')
-    ),
+             tabsetPanel(
+               tabPanel("Single or All Student",
+                 sidebarPanel(
+                   uiOutput("student_select_input"),
+                   tags$hr(),
+                   downloadButton("export_student_report", "Export Student Report"),
+                   tags$hr(),
+                   downloadButton("export_student_reports_all", "Export All Student Reports"),
+                   width = 3
+                  ),gt_output('student_table')
+               ),
+               tabPanel("Batch Student Query",
+                 sidebarPanel(
+                   textAreaInput("batch_student_list", "Paste student numbers:"),
+                   actionButton("batch_student_list_report", "View batch student report", class = "btn-primary"),
+                   downloadButton("export_batch_student_report", "Export Batch Student Report"),
+                   width = 3
+                 ), 
+                 # output of panel
+                 HTML("<center><h3>Batch Student Report</h3></center>"),
+                 HTML("<center style='color:red;'>Student numbers in red are not found in your batch query!</center>"),
+                 gt_output('batch_student_list_text')
+                 
+               )
+             )),
     
     tabPanel('Upload',
              sidebarLayout(
@@ -131,17 +145,13 @@ ui <- fluidPage(
                    multiple = TRUE,
                    accept = c(".xls*")
                  ),
-                 
-                 
                  radioButtons(
                    "display", "Display Uploaded Files",
                    choices = c(Head = "head",
                                All = "all"),
                    selected = "head"
                  )
-                 
                ),
-               
                mainPanel(
                  verbatimTextOutput("parsingError"),
                  shinyjs::useShinyjs(),
@@ -151,21 +161,17 @@ ui <- fluidPage(
                                     icon = icon('exclamation-triangle'))
                    )
                  ),
-                 
                  bsModal(id="parsing_error_msg_modal", title = "Error Messages",
                          trigger = "view_parsing_error_msg", size="large",
                          tableOutput("parsing_error_msg")
                  ),
-                 
                  uiOutput("uploadedFilesHeader"),
                  tableOutput("uploaded_files"),
                  uiOutput("studentCountsHeader"),
                  DT::dataTableOutput("summary")
-                 
                )
              )
     ),
-    
     tabPanel('Parse & Submit',
              uiOutput("fluidrow_parsed_options"),
              withSpinner(DT::dataTableOutput("parsed_table"), hide.ui = FALSE),
@@ -186,8 +192,6 @@ ui <- fluidPage(
              # tags$h3("Submission Details"),
              # DT::dataTableOutput("submission_details")
     ),
-    
-    
     tabPanel('Edit',
              navlistPanel(
                tabPanel("Delete Term",
@@ -207,14 +211,8 @@ ui <- fluidPage(
                widths = c(2, 10),
                well = TRUE
              )
-             
-             
-             
     )
-    
-    
-  )
-  
+ )
 )
 
 
@@ -402,6 +400,37 @@ server <- function(input, output, session) {
     }, options = list(pageLength=5, scrollX = T)
     )
   )
+
+  observe({shinyjs::toggleState("batch_student_list_report", input$batch_student_list)})
+
+  parse_batch_student_list <- eventReactive(input$batch_student_list_report, {
+    req(input$batch_student_list)
+    input$batch_student_list %>%
+      str_split("[, \n\t]+",simplify = T) %>% 
+      t() %>% 
+      as_tibble() %>% 
+      select(student_no=V1)
+  })
+
+  output$batch_student_list_text <- render_gt(
+    expr={ 
+    dept_table_sql() %>%
+    right_join(parse_batch_student_list(), by="student_no") %>%
+    # find rows which have all NA, i.e the student number is not found!
+    mutate(not_found= if_else(if_all(where(is.numeric), is.na), 1, 0)) %>%
+    gt(rowname_col = "student_no") %>%
+    fmt_missing(columns = everything(), missing_text = "") %>%
+    tab_stubhead(label = "Student Number") %>%
+    dept_table_gt_options() %>%
+    tab_style(
+      style = list(
+        cell_fill(color = "red"),
+        cell_text(color = "white")
+        ),
+      locations = cells_stub(rows= not_found == 1)) %>%
+    cols_hide("not_found")
+  }, height = px(550)
+  )
   
   ### PERSISTENT DATA STORAGE SECTION ###
   
@@ -558,6 +587,7 @@ server <- function(input, output, session) {
         dept_table_gt_options()
       #debug
       #saveRDS(department_table_en_gt, "department_table_en_gt.rds")
+      #saveRDS(dept_table_sql(), "department_table_sql.rds")
       department_table_en_gt 
     },
     height = px(550)
@@ -585,6 +615,7 @@ output$export_department_table_en <- downloadHandler(
       # debug
       #saveRDS(test_table,"test_sql_table.rds")
       test_table %>% 
+        # TODO unfortunately MatMuh TR is 052 and EN is 058, so ABCDEF wont work!!
         filter_dept_table_sql("[ABCÇDEF]","**Department Report (TR)**", negate=TRUE) %>%
         #filter(str_detect(student_no, "[ABCÇDEF]", negate=TRUE)) %>%
         #gt(rowname_col = "student_no") %>%
@@ -788,6 +819,17 @@ output$matrix_table <- render_gt(
       tab_header(
         title = md("**Student Report**"),
         subtitle = md(paste("Student number:", input$select_student))
+      ) %>%
+      tab_stubhead(label = "Courses") %>% 
+      dept_table_gt_options()
+  })
+
+  batch_student_report <- reactive({
+    create_student_table(student_initial_table_sql(), input$batch_student_list) %>% 
+      gt(rowname_col = "course") %>%
+      fmt_missing(columns = everything(), missing_text = "") %>% 
+      tab_header(
+        title = md("**Batch Student Report**")
       ) %>%
       tab_stubhead(label = "Courses") %>% 
       dept_table_gt_options()
