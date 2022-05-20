@@ -409,29 +409,41 @@ server <- function(input, output, session) {
       str_split("[, \n\t]+",simplify = T) %>% 
       t() %>% 
       as_tibble() %>% 
-      select(student_no=V1)
+      select(student_no=V1) %>%
+      # carefully parsing, empty missing student numbers from text area input
+      filter(!is.na(student_no)) %>%
+      filter(str_length(student_no) >= 8) %>%
+      distinct(student_no)
   })
 
   output$batch_student_list_text <- render_gt(
     expr={ 
-    dept_table_sql() %>%
-    right_join(parse_batch_student_list(), by="student_no") %>%
-    # find rows which have all NA, i.e the student number is not found!
-    mutate(not_found= if_else(if_all(where(is.numeric), is.na), 1, 0)) %>%
-    gt(rowname_col = "student_no") %>%
-    fmt_missing(columns = everything(), missing_text = "") %>%
-    tab_stubhead(label = "Student Number") %>%
-    dept_table_gt_options() %>%
-    tab_style(
-      style = list(
-        cell_fill(color = "red"),
-        cell_text(color = "white")
-        ),
-      locations = cells_stub(rows= not_found == 1)) %>%
-    cols_hide("not_found")
+      dept_table_sql() %>%
+        right_join(parse_batch_student_list(), by="student_no") %>%
+        arrange(student_no) %>%
+        # find rows which have all NA, i.e the student number is not found!
+        mutate(not_found= if_else(if_all(where(is.numeric), is.na), 1, 0)) %>%
+        prepare_batch_student_table()
   }, height = px(550)
   )
   
+output$export_batch_student_report <- downloadHandler(
+    filename = function() {
+      # INFO pdf output is a huge table with single header, if printed from html you can have pagination
+      paste0(paste(as.integer(as.POSIXct(Sys.time())), "batch-student-report", sep="-") , ".html")
+    },
+    content = function(file) {
+      batch_student_table <- dept_table_sql() %>%
+    right_join(parse_batch_student_list(), by="student_no") %>%
+    arrange(student_no) %>% 
+    # find rows which have all NA, i.e the student number is not found!
+    mutate(not_found= if_else(if_all(where(is.numeric), is.na), 1, 0)) %>%
+    prepare_batch_student_table()
+      # zoom idea taken from https://github.com/rstudio/gt/issues/721#issuecomment-797479922
+      #zoom=1 for pdf
+      gtsave(batch_student_table, file)
+    }
+  )
   ### PERSISTENT DATA STORAGE SECTION ###
   
   save_data <- function(data){

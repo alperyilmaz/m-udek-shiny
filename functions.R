@@ -232,4 +232,17 @@ data %>%
                        }
         )  
 }
-
+prepare_batch_student_table <- function(df){
+  df %>%
+    gt(rowname_col = "student_no") %>%
+    fmt_missing(columns = everything(), missing_text = "") %>%
+    tab_stubhead(label = "Student Number") %>%
+    dept_table_gt_options() %>%
+    tab_style(
+      style = list(
+        cell_fill(color = "red"),
+        cell_text(color = "white")
+        ),
+      locations = cells_stub(rows= not_found == 1)) %>%
+    cols_hide("not_found")
+}
