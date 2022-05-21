@@ -65,19 +65,31 @@ ui <- fluidPage(
                          #downloadButton("export_department_table_all", "Export Department Summary (ALL)"),
                          #tags$hr(),
                          HTML("<center><h3>Department Summary (ALL)</h3></center>"), 
-                         shinycssloaders::withSpinner(gt_output('department_table'))),
+                         shinycssloaders::withSpinner(gt_output('department_table')),
+                         tags$hr(),
+                         HTML("<center><h3>Department Success Rate (ALL)</h3></center>"),
+                         shinycssloaders::withSpinner(gt_output('department_summary_table'))
+                         ),
                tabPanel('Department Summary (TR)', 
                          downloadButton("export_department_table_tr", "Export Department Summary (TR)"),
                          HTML("<p>Please print the downloaded html file in landscape layout in Chrome/Firefox</p>"),
                          tags$hr(),
                          HTML("<center><h3>Department Summary (TR)</h3></center>"),
-                         shinycssloaders::withSpinner(gt_output('department_table_tr'))),
+                         shinycssloaders::withSpinner(gt_output('department_table_tr')),
+                         tags$hr(),
+                         HTML("<center><h3>Department Success Rate (TR)</h3></center>"),
+                         shinycssloaders::withSpinner(gt_output('department_summary_table_tr'))
+                         ),
                tabPanel('Department Summary (EN)',
                         downloadButton("export_department_table_en", "Export Department Summary (EN)"),
                         HTML("<p>Please print the downloaded html file in landscape layout in Chrome/Firefox</p>"),
                         tags$hr(),
                         HTML("<center><h3>Department Summary (EN)</h3></center>"), 
-                        shinycssloaders::withSpinner(gt_output('department_table_en'))),
+                        shinycssloaders::withSpinner(gt_output('department_table_en')),
+                        tags$hr(),
+                        HTML("<center><h3>Department Success Rate (EN)</h3></center>"),
+                        shinycssloaders::withSpinner(gt_output('department_summary_table_en'))
+                        ),
                tabPanel('Department Summary (ÇAP)', 
                         #downloadButton("export_department_table_cap", "Export Department Summary (ÇAP)"),
                         #tags$hr(),
@@ -572,7 +584,7 @@ output$export_batch_student_report <- downloadHandler(
     dept_table
   })
  
-  output$department_table_pc_matriks <- renderText("test")  
+  #output$department_table_pc_matriks <- renderText("test")  
 
   # TODO in department tables we should have ALL PC
   # TODO order of columns for 12b 8a is WRONG
@@ -590,6 +602,16 @@ output$export_batch_student_report <- downloadHandler(
     },
     height = px(550)
   )
+
+output$department_summary_table <- render_gt(
+    expr = {
+      dept_table_sql() %>% 
+        #INFO . is for any thing, we're filtering any thing, i.e everybody
+        department_table_summary(".")
+    },
+    height = px(250)
+  )
+  
   
   
   output$department_table_en <- render_gt(
@@ -603,6 +625,14 @@ output$export_batch_student_report <- downloadHandler(
       department_table_en_gt 
     },
     height = px(550)
+  )
+
+  output$department_summary_table_en <- render_gt(
+    expr = {
+      dept_table_sql() %>% 
+        department_table_summary("[0-9]+[ABCDEF][0-9]+")
+    },
+    height = px(250)
   )
   
 output$export_department_table_en <- downloadHandler(
@@ -639,6 +669,14 @@ output$export_department_table_en <- downloadHandler(
         dept_table_gt_options()       
     },
     height = px(550)
+  )
+
+output$department_summary_table_tr <- render_gt(
+    expr = {
+      dept_table_sql() %>% 
+        department_table_summary("[ABCÇDEF]", negate=TRUE)
+    },
+    height = px(250)
   )
 
 output$export_department_table_tr <- downloadHandler(

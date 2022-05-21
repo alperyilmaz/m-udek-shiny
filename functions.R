@@ -133,7 +133,49 @@ filter_dept_table_sql <- function(df, regex, title, negate=FALSE) {
     #  title = md(title)
     #  ) %>%
     tab_stubhead(label = "Student Number")
+} 
+
+department_table_summary <- function(df, regex, negate=FALSE){
+  
+  ones_zeros <- list(
+    Success = ~ sum(.x==1, na.rm=T),
+    Fail = ~ sum(.x==0, na.rm=T),
+    Ratio = ~ sum(.x==1, na.rm=T)/sum(!is.na(.x))
+    )
+  
+  df %>% 
+  filter(str_detect(student_no, regex, negate=negate)) %>%
+  select(-student_no) %>%  
+  summarize(across(everything(), ones_zeros)) %>% 
+  pivot_longer(everything(), names_to = "key", values_to = "value") %>% 
+  separate(key, into=c("pc","success"), sep = "_") %>% 
+  pivot_wider(names_from = pc, values_from = value) %>% 
+  gt(rowname_col = "success") %>% 
+  tab_stubhead(label = "Success/Fail Cases") %>% 
+  cols_align(align = "center") %>% 
+  fmt_number(columns=everything(), row = 3, decimals = 2) %>%
+  fmt_number(columns=everything(), row = 1:2, decimals = 0) %>%
+  tab_source_note(
+    source_note = "Ratio is equal to Success cases over total cases"
+    ) %>%
+  tab_options(
+          table.border.top.style = "none",
+          table.border.bottom.color = "black",
+          table.border.bottom.width = px(2),
+          table.font.size = px(14),
+          heading.border.bottom.color = "black",
+          heading.border.bottom.width = px(2),
+          column_labels.border.bottom.color = "black",
+          column_labels.border.bottom.width= px(2),
+          stub.border.color = "black",
+          stub.border.width = px(2),
+          table_body.border.bottom.color = "black",
+          table_body.border.bottom.width = px(2)
+        ) %>%
+  opt_row_striping()
+
 }
+
 
 create_table_initial_plus_by_course <- function(dataframe){
   dataframe %>% 
