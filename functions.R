@@ -187,6 +187,10 @@ create_table_initial_plus_by_course <- function(dataframe){
 }
 
 create_course_table <- function(dataframe_initial_course){
+  
+  #debug
+  saveRDS(dataframe_initial_course, "dataframe_initial_course.rds")
+  
   dataframe_initial_course %>% 
     distinct(course, student_no, PC, pass_fail) %>% 
     group_by(course, PC) %>%
@@ -196,6 +200,51 @@ create_course_table <- function(dataframe_initial_course){
     distinct(course, PC, pass_fail_perc) %>% 
     arrange(desc(course)) %>% 
     pivot_wider(names_from = PC, values_from = pass_fail_perc, names_sort = TRUE)
+}
+
+prepare_course_table <- function(df){
+
+df %>%
+  gt(rowname_col = "course") %>%
+        fmt_missing(columns = everything(), missing_text = "") %>% 
+        tab_header(
+          title = md("**Percentage of Successful Students**"),
+          subtitle = md("success criterion: *score >= 40*")
+        ) %>%
+        tab_stubhead(label = "Courses") %>% 
+        tab_spanner(
+          label = "PÇ (%)",
+          columns = everything()
+        ) %>% 
+        cols_align(
+          align = "center"
+        ) %>% 
+        tab_options(
+          table.border.top.style = "none",
+          # table.border.top.color = "black",
+          # table.border.top.width = px(2),
+          table.border.bottom.color = "black",
+          table.border.bottom.width = px(2),
+          table.font.size = px(12),
+          heading.border.bottom.color = "black",
+          heading.border.bottom.width = px(2),
+          column_labels.border.bottom.color = "black",
+          column_labels.border.bottom.width= px(2),
+          stub.border.color = "black",
+          stub.border.width = px(2),
+          table_body.border.bottom.color = "black",
+          table_body.border.bottom.width = px(2)
+        ) %>%
+        opt_row_striping() %>% 
+        tab_style(
+          style = list(cell_fill(color = "#F02241"), #cell_fill(color = "red"),
+                       cell_text(color = "white")),
+          locations = cells_stub( 
+        # TODO these below_50 column names should not be quoted! check examples at 
+        # https://search.r-project.org/CRAN/refmans/gt/html/tab_style.html
+            rows = "below_50" >= 1)) %>% 
+        cols_hide("below_50")
+
 }
 
 create_student_table <- function(dataframe_initial_course, student_number){

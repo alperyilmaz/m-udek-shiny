@@ -110,8 +110,15 @@ ui <- fluidPage(
                         gt_output('department_table_pc_def'))
    ),  
    tabPanel('Course Summary',
+     tabsetPanel(
+        tabPanel("Term Summary",
              uiOutput("select_term_course_input"),
              shinycssloaders::withSpinner(gt_output('course_table'))),
+        tabPanel("Year Summary",
+             uiOutput("select_year_course_input"),
+             shinycssloaders::withSpinner(gt_output('course_year_table'))) 
+     ) 
+   ),
     tabPanel('Student Summary', 
              tabsetPanel(
                tabPanel("Single or All Student",
@@ -519,6 +526,9 @@ output$export_batch_student_report <- downloadHandler(
       select(-pc_rank)
     dbDisconnect(con)
     dbDisconnect(con2)
+
+    #debug
+    #saveRDS(merged, "merged_load_data.rds")
     merged
   }
 
@@ -724,11 +734,29 @@ output$export_department_table_tr <- downloadHandler(
         distinct(term)
     }
   }
+
+    get_years <- function(){
+    if(is_empty(load_data())){return()}
+    else{
+      load_data() %>% 
+        distinct(term) %>% 
+        mutate(year = str_extract(term, "\\d+-\\d+")) %>% 
+        distinct(year)
+
+    }
+  }
   
   output$select_term_course_input <- renderUI({
     selectInput("select_term_course",
                 "Select Term:",
                 c(sort(as.character(get_terms()$term))))
+    
+  })
+
+  output$select_year_course_input <- renderUI({
+    selectInput("select_year_course",
+                "Select Year:",
+                c(sort(as.character(get_years()$year))))
     
   })
 
@@ -744,6 +772,14 @@ output$export_department_table_tr <- downloadHandler(
                       "select_term_course",
                       "Select Term:",
                       choices = c(sort(as.character(get_terms()$term)))
+    )
+  })
+
+    observeEvent(c(input$submitFiles, input$deleteTerm, input$deleteCourse), {
+    updateSelectInput(session,
+                      "select_year_course",
+                      "Select Year:",
+                      choices = c(sort(as.character(get_years()$year)))
     )
   })
   
@@ -774,49 +810,69 @@ output$export_department_table_tr <- downloadHandler(
       #saveRDS(course_table, "course_table.rds")
 
       course_table %>%
-        gt(rowname_col = "course") %>%
-        fmt_missing(columns = everything(), missing_text = "") %>% 
-        tab_header(
-          title = md("**Percentage of Successful Students**"),
-          subtitle = md("success criterion: *score >= 40*")
-        ) %>%
-        tab_stubhead(label = "Courses") %>% 
-        tab_spanner(
-          label = "PÇ (%)",
-          columns = everything()
-        ) %>% 
-        cols_align(
-          align = "center"
-        ) %>% 
-        tab_options(
-          table.border.top.style = "none",
-          # table.border.top.color = "black",
-          # table.border.top.width = px(2),
-          table.border.bottom.color = "black",
-          table.border.bottom.width = px(2),
-          table.font.size = px(12),
-          heading.border.bottom.color = "black",
-          heading.border.bottom.width = px(2),
-          column_labels.border.bottom.color = "black",
-          column_labels.border.bottom.width= px(2),
-          stub.border.color = "black",
-          stub.border.width = px(2),
-          table_body.border.bottom.color = "black",
-          table_body.border.bottom.width = px(2)
-        ) %>%
-        opt_row_striping() %>% 
-        tab_style(
-          style = list(cell_fill(color = "#F02241"), #cell_fill(color = "red"),
-                       cell_text(color = "white")),
-          locations = cells_stub( 
-        # TODO these below_50 column names should not be quoted! check examples at 
-        # https://search.r-project.org/CRAN/refmans/gt/html/tab_style.html
-            rows = "below_50" >= 1)) %>% 
-        cols_hide("below_50")
+      prepare_course_table()
     },
     height = px(550)
     
   )
+
+  output$course_year_table <- render_gt(
+    expr = {
+      load_data() %>% 
+        filter(str_detect(term, input$select_year_course)) %>% 
+        select(-file) %>% 
+        ## TODO load_data() tekrarlar içeriyor, aşağıdaki komut ile distinct hale geldiğinde veri ÇOK azalıyor
+        ## TODO purge the database for duplicate entries
+        distinct() %>% 
+        mutate(yuzluk= (score/Puan) * 100) %>% 
+        group_by(PC,course,student_no) %>% 
+        summarize(ort_p=mean(yuzluk)) %>% 
+        group_by(PC) %>% 
+        summarize(`Puan Ortalaması`= round(mean(ort_p, na.rm=T), 2), 
+                  `Öğrenci Sayısı`= n(), 
+                  `Ders Sayısı`= n_distinct(course)) %>% 
+          gt(rowname_col = "PC") %>% 
+          cols_align(align = "center") %>% 
+          tab_options(
+              table.border.top.style = "none",
+              # table.border.top.color = "black",
+              # table.border.top.width = px(2),
+              table.border.bottom.color = "black",
+              table.border.bottom.width = px(2),
+              table.font.size = px(12),
+              heading.border.bottom.color = "black",
+              heading.border.bottom.width = px(2),
+              column_labels.border.bottom.color = "black",
+              column_labels.border.bottom.width= px(2),
+              stub.border.color = "black",
+              stub.border.width = px(2),
+              table_body.border.bottom.color = "black",
+              table_body.border.bottom.width = px(2)
+            ) %>%
+            opt_row_striping() %>%
+            tab_style(
+              # TODO borders of sticky row is not sticky at all
+              # please check https://stackoverflow.com/questions/50361698/border-style-do-not-work-with-sticky-position-element
+              # for some css based solution
+              style = css(position = "sticky", top = 0),
+              locations = list(cells_column_labels(), cells_stubhead())
+            ) %>%
+            # TODO this does not work, ask somewhere else, is it possible to make borders sticky?
+            tab_style(
+              # TODO cell_borders(sides = c("top", "bottom"),color = "#BBBBBB",weight = px(1.5),style = "solid")
+              style = css(position = "sticky", top = 0),
+              locations = list(cells_column_labels(), cells_stubhead())          
+            ) %>% 
+            # TODO testing if 12px fits to PDF 
+            tab_options(table.font.size = px(12))
+        
+
+       
+    },
+    height = px(550)
+    
+  )
+
 # TODO needs lots of modifications
 output$matrix_table <- render_gt(
     expr = {
