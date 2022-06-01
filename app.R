@@ -825,6 +825,8 @@ output$export_department_table_tr <- downloadHandler(
         ## TODO purge the database for duplicate entries
         distinct() %>% 
         mutate(yuzluk= (score/Puan) * 100) %>% 
+        # TODO course ile grup yapıldığında ders ve grup no var, aslında ders başına yapmamız gerekir
+        # TODO ders sayarken grupları ayrı sayıyoruz, muhtemelen beraber sayılması gerekiyor
         group_by(PC,course,student_no) %>% 
         summarize(ort_p=mean(yuzluk)) %>% 
         group_by(PC) %>% 
