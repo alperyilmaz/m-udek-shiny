@@ -337,3 +337,25 @@ prepare_batch_student_table <- function(df){
       locations = cells_stub(rows= not_found == 1)) %>%
     cols_hide("not_found")
 }
+
+determine_dept <- function(student_no){ 
+  # TODO this is not elegant, might fail frequently
+  # so, the database should have student names without any trailing spaces
+  # parsing is done from the end due to CAP students having "Ç" at the beginning
+  dept <- str_sub(student_no, start = -6, end = -4)
+  result <- case_when(
+    dept == "05A" ~ "Bioengineering EN",
+    dept == "056" ~ "Bioengineering TR",
+    dept == "05B" ~ "Chemical Engineering EN",
+    dept == "051" ~ "Chemical Engineering TR",
+    dept == "05C" ~ "Metallurgical and Materials Engineering EN",
+    dept == "054" ~ "Metallurgical and Materials Engineering TR",
+    dept == "058" ~ "Mathematical Engineering EN",
+    dept == "052" ~ "Mathematical Engineering TR",
+    dept == "057" ~ "Food Engineering TR",
+    TRUE ~ "Unknown"
+  )
+  
+  result
+  
+ }

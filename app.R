@@ -261,11 +261,11 @@ server <- function(input, output, session) {
            #           "Kimya Mühendisliği",
            #           "Matematik Mühendisliği",
            #           "Metalurji ve Malzeme Mühendisliği"),
-           user1 = "Biyomühendislik",
-           user2 = "Gıda Mühendisliği",
-           user3 = "Kimya Mühendisliği",
-           user4 = "Matematik Mühendisliği",
-           user5 = "Metalurji ve Malzeme Mühendisliği"
+           user1 = "Bioengineering",
+           user2 = "Food Engineering",
+           user3 = "Chemical Engineering",
+           user4 = "Mathematical Engineering",
+           user5 = "Metallurgical and Materials Engineering"
     )
   })
   
@@ -824,52 +824,43 @@ output$export_department_table_tr <- downloadHandler(
         ## TODO load_data() tekrarlar içeriyor, aşağıdaki komut ile distinct hale geldiğinde veri ÇOK azalıyor
         ## TODO purge the database for duplicate entries
         distinct() %>% 
+        mutate(dept=determine_dept(student_no)) %>%
+        # INFO filtering for "Bioengineering EN" or "Bioengineering TR" 
+        filter(str_detect(dept,userDept())) %>%
         mutate(yuzluk= (score/Puan) * 100) %>% 
         # TODO course ile grup yapıldığında ders ve grup no var, aslında ders başına yapmamız gerekir
         # TODO ders sayarken grupları ayrı sayıyoruz, muhtemelen beraber sayılması gerekiyor
-        group_by(PC,course,student_no) %>% 
+        group_by(PC,course,student_no,dept) %>% 
         summarize(ort_p=mean(yuzluk)) %>% 
-        group_by(PC) %>% 
-        summarize(`Puan Ortalaması`= round(mean(ort_p, na.rm=T), 2), 
-                  `Öğrenci Sayısı`= n(), 
-                  `Ders Sayısı`= n_distinct(course)) %>% 
-          gt(rowname_col = "PC") %>% 
-          cols_align(align = "center") %>% 
-          tab_options(
-              table.border.top.style = "none",
-              # table.border.top.color = "black",
-              # table.border.top.width = px(2),
-              table.border.bottom.color = "black",
-              table.border.bottom.width = px(2),
-              table.font.size = px(12),
-              heading.border.bottom.color = "black",
-              heading.border.bottom.width = px(2),
-              column_labels.border.bottom.color = "black",
-              column_labels.border.bottom.width= px(2),
-              stub.border.color = "black",
-              stub.border.width = px(2),
-              table_body.border.bottom.color = "black",
-              table_body.border.bottom.width = px(2)
-            ) %>%
-            opt_row_striping() %>%
-            tab_style(
-              # TODO borders of sticky row is not sticky at all
-              # please check https://stackoverflow.com/questions/50361698/border-style-do-not-work-with-sticky-position-element
-              # for some css based solution
-              style = css(position = "sticky", top = 0),
-              locations = list(cells_column_labels(), cells_stubhead())
-            ) %>%
-            # TODO this does not work, ask somewhere else, is it possible to make borders sticky?
-            tab_style(
-              # TODO cell_borders(sides = c("top", "bottom"),color = "#BBBBBB",weight = px(1.5),style = "solid")
-              style = css(position = "sticky", top = 0),
-              locations = list(cells_column_labels(), cells_stubhead())          
-            ) %>% 
-            # TODO testing if 12px fits to PDF 
-            tab_options(table.font.size = px(12))
-        
-
-       
+        group_by(PC,dept) %>% 
+        summarize(`Average Score`= round(mean(ort_p, na.rm=T), 2),
+                  `No of Students`= n(),
+                  `No of Courses`= n_distinct(course))  %>% 
+        ungroup() %>% 
+        pivot_longer(-(1:2), names_to = "key", values_to = "values") %>% 
+        unite(dept, key, col="key_dept", sep = "_") %>% 
+        pivot_wider(names_from = key_dept, values_from = values) %>% 
+        gt(rowname_col = "PC") %>% 
+        tab_spanner_delim(delim="_") %>%
+        cols_align(align = "center") %>%
+        tab_options(
+           table.border.top.style = "none",
+           # table.border.top.color = "black",
+           # table.border.top.width = px(2),
+           table.border.bottom.color = "black",
+           table.border.bottom.width = px(2),
+           table.font.size = px(12),
+           heading.border.bottom.color = "black",
+           heading.border.bottom.width = px(2),
+           column_labels.border.bottom.color = "black",
+           column_labels.border.bottom.width= px(2),
+           stub.border.color = "black",
+           stub.border.width = px(2),
+           table_body.border.bottom.color = "black",
+           table_body.border.bottom.width = px(2)
+         ) %>%
+         opt_row_striping() %>%
+         tab_options(table.font.size = px(14))
     },
     height = px(550)
     
