@@ -828,10 +828,14 @@ output$export_department_table_tr <- downloadHandler(
         # INFO filtering for "Bioengineering EN" or "Bioengineering TR" 
         filter(str_detect(dept,userDept())) %>%
         mutate(yuzluk= (score/Puan) * 100) %>% 
-        # TODO course ile grup yapıldığında ders ve grup no var, aslında ders başına yapmamız gerekir
-        # TODO ders sayarken grupları ayrı sayıyoruz, muhtemelen beraber sayılması gerekiyor
+        # INFO for one student, there might be multiple scores for one PC (vize, final) 
+        # INFO so let's get student's average within course
         group_by(PC,course,student_no,dept) %>% 
         summarize(ort_p=mean(yuzluk)) %>% 
+        ungroup() %>%
+        # DONE course ile grup yapıldığında ders ve grup no var, aslında ders başına yapmamız gerekir
+        # DONE ders sayarken grupları ayrı sayıyoruz, muhtemelen beraber sayılması gerekiyor
+        mutate(course=str_replace(course,"^([:upper:]{3})\\-*(\\d{4}).*","\\1\\2")) %>%
         group_by(PC,dept) %>% 
         summarize(`Average Score`= round(mean(ort_p, na.rm=T), 2),
                   `No of Students`= n(),
@@ -840,7 +844,8 @@ output$export_department_table_tr <- downloadHandler(
         pivot_longer(-(1:2), names_to = "key", values_to = "values") %>% 
         unite(dept, key, col="key_dept", sep = "_") %>% 
         pivot_wider(names_from = key_dept, values_from = values) %>% 
-        gt(rowname_col = "PC") %>% 
+        gt(rowname_col = "PC") %>%
+        # INFO this is where magic happens, the part before delim becomes column spanner 
         tab_spanner_delim(delim="_") %>%
         cols_align(align = "center") %>%
         tab_options(
