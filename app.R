@@ -261,6 +261,16 @@ server <- function(input, output, session) {
            #           "Kimya Mühendisliği",
            #           "Matematik Mühendisliği",
            #           "Metalurji ve Malzeme Mühendisliği"),
+           user1 = "Biyomühendislik",
+           user2 = "Gıda Mühendisliği",
+           user3 = "Kimya Mühendisliği",
+           user4 = "Matematik Mühendisliği",
+           user5 = "Metalurji ve Malzeme Mühendisliği"
+    )
+  })
+  
+  userDeptEN <- reactive({
+    switch(res_auth$user,
            user1 = "Bioengineering",
            user2 = "Food Engineering",
            user3 = "Chemical Engineering",
@@ -268,7 +278,7 @@ server <- function(input, output, session) {
            user5 = "Metallurgical and Materials Engineering"
     )
   })
-  
+
   userDB <- reactive({
     switch(res_auth$user,
            admin = database_biyomuh,
@@ -515,9 +525,13 @@ output$export_batch_student_report <- downloadHandler(
     tables <- lapply(table_names, dbReadTable, conn = con)
     # tables <- map(table_names, tbl, conn = con) # throws an error!
     merged <- bind_rows(tables)
-
+    # debug
+    #print(merged)
     con2 <- dbConnect(RSQLite::SQLite(), userDBsabit())
     pc_def <- dbReadTable(conn=con2, "pc_def") %>% as_tibble() %>% select(pc_rank, pc_no) 
+    # debug
+    #print(pc_def)
+
     merged <- 
       merged %>% 
       as_tibble() %>% 
@@ -825,8 +839,9 @@ output$export_department_table_tr <- downloadHandler(
         ## TODO purge the database for duplicate entries
         distinct() %>% 
         mutate(dept=determine_dept(student_no)) %>%
-        # INFO filtering for "Bioengineering EN" or "Bioengineering TR" 
-        filter(str_detect(dept,userDept())) %>%
+        # INFO filtering for "Bioengineering EN" or "Bioengineering TR"
+        # TODO check if userDeptEN can be used for filtering (Biyomühendislik vs Bioengineering) 
+        filter(str_detect(dept,userDeptEN())) %>%
         mutate(yuzluk= (score/Puan) * 100) %>% 
         # INFO for one student, there might be multiple scores for one PC (vize, final) 
         # INFO so let's get student's average within course

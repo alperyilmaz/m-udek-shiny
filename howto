@@ -64,3 +64,17 @@ read_tsv("kimyamuh-pc-list.tsv") %>%
 # sqlite> .mode tabs
 # sqlite> .import "kimyamuh_pc_def.tsv" pc_def --skip 1
 # sqlite> .import "kimyamuh-pc-list.tsv" pc_matriks --skip 1
+
+## EMPTY databases cause error, so generate an empy "failsafe" table in each department
+
+CREATE TABLE `failsafe` (
+  `department` TEXT,
+  `term` TEXT,
+  `file` TEXT,
+  `course` TEXT,
+  `method` TEXT,
+  `PC` TEXT,
+  `student_no` TEXT,
+  `score` REAL,
+  `Puan` REAL
+);
