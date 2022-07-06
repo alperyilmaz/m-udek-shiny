@@ -536,6 +536,9 @@ output$export_batch_student_report <- downloadHandler(
       merged %>% 
       as_tibble() %>% 
       right_join(pc_def, by=c("PC"="pc_no")) %>% 
+      # mudek ozel olcutleri gormek istemiyor, bunlar simdilik cikarılıyor
+      # daha sonra islemek icin ayrı kodlar yazılabilir
+      filter(!str_detect(PC,"^12")) %>%
       mutate(PC=fct_reorder(PC, pc_rank)) %>% 
       select(-pc_rank)
     dbDisconnect(con)
@@ -554,6 +557,9 @@ output$export_batch_student_report <- downloadHandler(
     merged <- matriks_table %>% 
       as_tibble() %>% 
       right_join(pc_def, by=c("PC"="pc_no")) %>% 
+      # mudek ozel olcutleri gormek istemiyor, bunlar simdilik cikarılıyor
+      # daha sonra islemek icin ayrı kodlar yazılabilir
+      filter(!str_detect(PC,"^12")) %>%
       mutate(PC=fct_reorder(PC, pc_rank)) %>% 
       select(-pc_rank)
 
