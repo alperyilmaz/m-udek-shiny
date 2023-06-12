@@ -263,7 +263,7 @@ get_time <- function() {
 
 get_available_terms <- function() {
 # reverse order is better, the latest term will be selected as default
-c("2021-2022 BAHAR", "2021-2022 GÜZ",  "2020-2021 BAHAR", "2020-2021 GÜZ", "2019-2020 BAHAR",  "2019-2020 GÜZ","2018-2019 BAHAR", "2018-2019 GÜZ")
+c("2022-2023 BAHAR", "2022-2023 GÜZ", "2021-2022 BAHAR", "2021-2022 GÜZ",  "2020-2021 BAHAR", "2020-2021 GÜZ", "2019-2020 BAHAR",  "2019-2020 GÜZ","2018-2019 BAHAR", "2018-2019 GÜZ")
 
 }
 
