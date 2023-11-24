@@ -65,6 +65,28 @@ read_tsv("kimyamuh-pc-list.tsv") %>%
 # sqlite> .import "kimyamuh_pc_def.tsv" pc_def --skip 1
 # sqlite> .import "kimyamuh-pc-list.tsv" pc_matriks --skip 1
 
+## METALURJI
+
+# get content from http://www.bologna.yildiz.edu.tr/index.php?r=program/view&id=38&aid=25
+# then clean and save
+xclip -o | sed -e 's/^ *//' -e 's/PÇ-//' -e 's/) /\t/' | awk -F"\t" 'BEGIN{printf"pc_rank\tpc_no\tpc_def\n"} {printf"%s\t%s\t%s\n",NR,$1,$2}' > metalurji-pc-def.tsv
+
+# also got the matrix info from same page, carried over to excel, removed non MEM lectures and saved as metalurji-muh-pc-matriks.xlsx
+readxl::read_excel("metalurji-muh-pc-matriks.xlsx") |> 
+  pivot_longer(-(1:2), names_to = "PC", values_to = "VAR") |> 
+  filter(VAR!="-") |> 
+  select(-VAR) |> 
+  mutate(term="2020-2021 BAHAR", DersTipi="Temel") |> 
+  select(term, Kodu=`ders kodu`, Ders=`ders adı`, DersTipi, PC) |> 
+  filter(!is.na(Kodu)) |> 
+  write_tsv("metalurji-pc-list.tsv")
+
+# import data
+sqlite3 metalurji-sabit.db
+CREATE TABLE IF NOT EXISTS "pc_def"("pc_rank" INT, "pc_no" TEXT, "pc_def" TEXT);
+.import "metalurji-pc-def.tsv" pc_def --skip 1
+.import "metalurji-pc-list.tsv" pc_matriks
+
 ## EMPTY databases cause error, so generate an empy "failsafe" table in each department
 
 CREATE TABLE `failsafe` (
