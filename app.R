@@ -114,6 +114,9 @@ ui <- fluidPage(
         tabPanel("Term Summary",
              uiOutput("select_term_course_input"),
              shinycssloaders::withSpinner(gt_output('course_table'))),
+        #tabPanel("Term Summary (Avg)",
+        #     uiOutput("select_term_course_avg_input"),
+        #     shinycssloaders::withSpinner(gt_output('course_table_avg'))),
         tabPanel("Year Summary",
              uiOutput("select_year_course_input"),
              shinycssloaders::withSpinner(gt_output('course_year_table'))) 
